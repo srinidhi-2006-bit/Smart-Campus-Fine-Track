@@ -1,0 +1,4 @@
+.flaskenv
+__pycache__
+CLI to manage db/students copy.csv
+static/images/your_qr_code.png

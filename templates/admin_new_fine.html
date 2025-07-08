@@ -1,0 +1,219 @@
+{% extends 'admin_home.html' %}
+{% block header_title %}
+    <h2 class="text-2xl font-bold mb-4 text-gray-800">
+        <i class="fas fa-plus-circle mr-2"></i> 
+        New Fine Entry
+    </h2>
+{% endblock %}
+{% block main_content %}
+<main class="flex-1 overflow-auto bg-gray-50 py-4 px-6"> 
+    <div class="bg-white shadow rounded-lg p-6 mb-8 max-w-4xl mx-auto">
+        <form id="newFineForm" action="{{ url_for('admin.admin_create_fine') }}" method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="student_id">Student ID</label>
+                    <input
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        id="student_id"
+                        name="student_id"
+                        type="text"
+                        pattern="[0-9]{2}B81A[0-9]{2}[A-Z0-9]{2}"
+                        title="Enter valid Student ID in caps (e.g., 23B81A05H1)"
+                        required
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="student_email">Student Email</label>
+                    <input
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 focus:outline-none sm:text-sm"
+                        id="student_email"
+                        name="student_email"
+                        type="email"
+                        readonly
+                        tabindex="-1"
+                     />
+                     <p id="student_email_status" class="mt-1 text-sm text-red-600 hidden">Student not found.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="fine_category">Fine Category</label>
+                    <select
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        id="fine_category"
+                        name="fine_category"
+                        required
+                    >
+                        <option value="">Select Category...</option>
+                        {% for category in fine_categories %}
+                            <option value="{{ category.type }}">{{ category.type }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-sm text-red-600 hidden" id="fineCategoryError">
+                        Fine category not found or amount mismatch.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="amount">Fine Amount</label>
+                    <input
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        step="0.01"
+                        min="0" 
+                        required
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="due_date">Due Date</label>
+                    <input
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        id="due_date"
+                        name="due_date"
+                        type="date"
+                        value="{{ due_date }}" {# Use value passed from route #}
+                        required
+                    />
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="reason">Reason</label>
+                    <textarea
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        id="reason"
+                        name="reason"
+                        rows="3"
+                        maxlength="200"
+                        required
+                    ></textarea>
+                    <p class="text-sm text-gray-500 text-right" id="charCount">
+                        0 / 200 characters
+                    </p>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6"> 
+                <button
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-md shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" 
+                    type="submit"
+                >Create Fine</button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+    const studentIdInput = document.getElementById('student_id');
+    const studentEmailInput = document.getElementById('student_email');
+    const studentEmailStatus = document.getElementById('student_email_status');
+    const fineCategorySelect = document.getElementById('fine_category');
+    const amountInput = document.getElementById('amount');
+    const fineCategoryError = document.getElementById('fineCategoryError');
+    const reasonTextarea = document.getElementById('reason');
+    const charCountDisplay = document.getElementById('charCount');
+    const dueDateInput = document.getElementById('due_date');
+
+    // Character counter for reason
+    function countCharacters() {
+        const currentLength = reasonTextarea.value.length;
+        charCountDisplay.textContent = `${currentLength} / 200 characters`;
+    }
+    reasonTextarea.addEventListener('input', countCharacters);
+    countCharacters(); // Initial count
+
+    // Set minimum due date to today
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        dueDateInput.setAttribute('min', today);
+        // If the default value is in the past (shouldn't happen with route logic), reset to today
+        if (dueDateInput.value < today) {
+            dueDateInput.value = today;
+        }
+    });
+
+    // Fetch student email on input (add debounce later if needed)
+    studentIdInput.addEventListener('input', function() {
+        const studentId = this.value.trim().toUpperCase(); // Standardize to uppercase
+        studentIdInput.value = studentId; // Update input field
+        studentEmailInput.value = ''; // Clear email field
+        studentEmailStatus.classList.add('hidden'); // Hide status message
+
+        // Basic pattern check (client-side)
+        const pattern = /^[0-9]{2}B81A[0-9]{2}[A-Z0-9]{2}$/;
+        if (studentId && pattern.test(studentId)) { // Check if ID looks valid before fetching
+            fetch(`/admin/get_student_email/${studentId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                 })
+                .then(data => {
+                    if (data.email) {
+                        studentEmailInput.value = data.email;
+                        studentEmailStatus.classList.add('hidden');
+                    } else if (data.error) {
+                         console.error('Server error fetching email:', data.error);
+                         studentEmailStatus.textContent = 'Error fetching email.';
+                         studentEmailStatus.classList.remove('hidden');
+                    } else {
+                        // Student ID valid format, but not found in DB
+                        studentEmailStatus.textContent = 'Student ID not found.';
+                        studentEmailStatus.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching student email:', error);
+                    studentEmailStatus.textContent = 'Network or server error.';
+                    studentEmailStatus.classList.remove('hidden');
+                    studentEmailInput.value = ''; // Clear on error
+                });
+        } else if (studentId) {
+            // ID entered but doesn't match pattern
+            studentEmailStatus.textContent = 'Invalid ID format.';
+            studentEmailStatus.classList.remove('hidden');
+        }
+    });
+
+    // Fetch fine amount on category change
+    fineCategorySelect.addEventListener('change', function() {
+        const category = this.value.trim();
+        amountInput.value = ''; // Clear amount
+        fineCategoryError.classList.add('hidden'); // Hide error
+
+        if (category) {
+            fetch(`/get_fine_amount/${category}`)
+                .then(response => {
+                     if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.amount !== null && data.amount !== undefined) {
+                        amountInput.value = parseFloat(data.amount).toFixed(2); // Format to 2 decimal places
+                        fineCategoryError.classList.add('hidden');
+                    } else if (data.error) {
+                         console.error('Server error fetching amount:', data.error);
+                         fineCategoryError.textContent = 'Error fetching amount.';
+                         fineCategoryError.classList.remove('hidden');
+                    }
+                    else {
+                        amountInput.value = '';
+                        fineCategoryError.textContent = 'Category not found or amount not set.';
+                        fineCategoryError.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching fine amount:', error);
+                    amountInput.value = '';
+                    fineCategoryError.textContent = 'Network or server error.';
+                    fineCategoryError.classList.remove('hidden');
+                });
+        } else {
+            amountInput.value = ''; // Clear if category is unselected
+            fineCategoryError.classList.add('hidden');
+        }
+    });
+
+</script>
+{# Include flash messages block if not already in admin_home.html base template #}
+{# {% include 'flash_messages.html' %} #}
+{% endblock %}

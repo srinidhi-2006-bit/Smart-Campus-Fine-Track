@@ -1,0 +1,250 @@
+{% extends 'admin_home.html' %}
+
+{% block header_title %}
+    <h2 class="text-2xl font-bold mb-4 text-gray-800">
+        <i class="fas fa-chart-bar mr-2"></i>
+        Analytics Dashboard
+    </h2>
+{% endblock %}
+
+{% block main_content %}
+{# Include Chart.js library #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+{# Optional: Add a date range filter form here if needed #}
+
+<div class="flex-1 overflow-auto bg-gray-50 py-4 px-6 space-y-6">
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+             <div class="bg-green-100 p-3 rounded-full">
+                 <i class="fas fa-rupee-sign fa-2x text-green-600"></i>
+             </div>
+             <div>
+                 <p class="text-sm text-gray-500 font-medium">Total Collected</p>
+                 <p class="text-2xl font-bold text-gray-800">₹ {{ "%.2f"|format(data.total_collected | float) }}</p>
+             </div>
+        </div>
+         <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+             <div class="bg-orange-100 p-3 rounded-full">
+                 <i class="fas fa-hourglass-half fa-2x text-orange-600"></i>
+             </div>
+             <div>
+                 <p class="text-sm text-gray-500 font-medium">Total Pending</p>
+                 <p class="text-2xl font-bold text-gray-800">₹ {{ "%.2f"|format(data.total_pending | float) }}</p>
+             </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+             <div class="bg-blue-100 p-3 rounded-full">
+                 <i class="fas fa-list-ol fa-2x text-blue-600"></i>
+             </div>
+             <div>
+                 <p class="text-sm text-gray-500 font-medium">Total Fines Issued</p>
+                 {# Calculate total fines count #}
+                 {% set total_fines = data.fines_by_status | sum(attribute='count') %}
+                 <p class="text-2xl font-bold text-gray-800">{{ total_fines }}</p>
+             </div>
+        </div>
+         <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+             <div class="bg-indigo-100 p-3 rounded-full">
+                 <i class="fas fa-users fa-2x text-indigo-600"></i>
+             </div>
+             <div>
+                 <p class="text-sm text-gray-500 font-medium">Batches with Fines</p>
+                 <p class="text-2xl font-bold text-gray-800">{{ data.fines_by_batch | length }}</p>
+             </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines by Status</h3>
+            <div class="h-64"> {# Set height for canvas container #}
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines by Category</h3>
+             <div class="h-64"> {# Set height for canvas container #}
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines Count by Batch (YY)</h3>
+             <div class="h-64"> {# Set height for canvas container #}
+                <canvas id="batchCountChart"></canvas>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines Issued Over Time (Monthly)</h3>
+            <div class="h-64"> {# Set height for canvas container #}
+                <canvas id="monthlyFinesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- Chart Colors ---
+        const chartColors = [
+            '#2563eb', '#16a34a', '#f97316', '#dc2626', '#6366f1',
+            '#facc15', '#ec4899', '#0ea5e9', '#8b5cf6', '#10b981'
+        ];
+        const hoverColors = [
+            '#1d4ed8', '#15803d', '#ea580c', '#b91c1c', '#4f46e5',
+            '#eab308', '#db2777', '#0284c7', '#7c3aed', '#059669'
+        ];
+
+        // --- 1. Fines by Status Chart ---
+        const statusCtx = document.getElementById('statusChart')?.getContext('2d');
+        if (statusCtx) {
+            const statusData = {{ data.fines_by_status | tojson }};
+            new Chart(statusCtx, {
+                type: 'doughnut', // or 'pie'
+                data: {
+                    labels: statusData.map(item => item._id.replace('_',' ').title()),
+                    datasets: [{
+                        label: 'Fines Count',
+                        data: statusData.map(item => item.count),
+                        backgroundColor: chartColors.slice(0, statusData.length),
+                        hoverBackgroundColor: hoverColors.slice(0, statusData.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: false, // Already have h3 title
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 2. Fines by Category Chart ---
+        const categoryCtx = document.getElementById('categoryChart')?.getContext('2d');
+         if (categoryCtx) {
+            const categoryData = {{ data.fines_by_category | tojson }};
+            // Limit categories shown if too many, group others into 'Other'
+            const maxCategories = 8;
+            let displayCategories = categoryData;
+            if (categoryData.length > maxCategories) {
+                 displayCategories = categoryData.slice(0, maxCategories -1);
+                 const otherCount = categoryData.slice(maxCategories -1).reduce((sum, item) => sum + item.count, 0);
+                 if (otherCount > 0) {
+                    displayCategories.push({ _id: 'Other', count: otherCount });
+                 }
+            }
+
+            new Chart(categoryCtx, {
+                type: 'bar', // Horizontal bar might be better for many categories
+                 data: {
+                    labels: displayCategories.map(item => item._id),
+                    datasets: [{
+                        label: 'Number of Fines',
+                        data: displayCategories.map(item => item.count),
+                        backgroundColor: chartColors[0], // Single color for bar
+                        borderColor: hoverColors[0],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Make it horizontal bar
+                    responsive: true,
+                    maintainAspectRatio: false,
+                     scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    },
+                     plugins: {
+                        legend: { display: false }, // Hide legend for single dataset bar chart
+                        title: { display: false }
+                    }
+                }
+            });
+        }
+
+
+        // --- 3. Fines Count by Batch Chart ---
+        const batchCountCtx = document.getElementById('batchCountChart')?.getContext('2d');
+        if (batchCountCtx) {
+            const batchData = {{ data.fines_by_batch | tojson }};
+             new Chart(batchCountCtx, {
+                type: 'bar',
+                data: {
+                    labels: batchData.map(item => `20${item._id}`), // Display as '20YY'
+                    datasets: [{
+                        label: 'Number of Fines',
+                        data: batchData.map(item => item.count),
+                        backgroundColor: chartColors[4], // Indigo color
+                        borderColor: hoverColors[4],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                     scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Number of Fines' }
+                        },
+                         x: {
+                             title: { display: true, text: 'Batch Year' }
+                         }
+                    },
+                    plugins: { legend: { display: false }, title: { display: false } }
+                }
+            });
+        }
+
+         // --- 4. Fines Issued Over Time (Monthly) ---
+         const monthlyCtx = document.getElementById('monthlyFinesChart')?.getContext('2d');
+         if (monthlyCtx) {
+            const monthlyData = {{ data.fines_by_month | tojson }};
+             new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(item => item._id), // YYYY-MM labels
+                    datasets: [{
+                        label: 'Fines Issued',
+                        data: monthlyData.map(item => item.count),
+                        fill: true,
+                        borderColor: chartColors[7], // Sky blue
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)', // Light sky blue fill
+                        tension: 0.1 // Slight curve
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                     scales: {
+                        y: {
+                            beginAtZero: true,
+                             title: { display: true, text: 'Number of Fines Issued' }
+                        },
+                         x: {
+                             title: { display: true, text: 'Month' }
+                         }
+                    },
+                    plugins: { legend: { display: false }, title: { display: false } }
+                }
+            });
+        }
+
+    });
+</script>
+{% endblock %}

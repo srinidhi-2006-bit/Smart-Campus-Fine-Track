@@ -1,0 +1,32 @@
+{# templates/flash_messages.html #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div id="flash-container" class="fixed top-5 right-5 z-[100] w-80 space-y-3">
+            {% for category, message in messages %}
+                 {# category '1' for success (green), '0' for error (red) #}
+                {% set alert_type = 'bg-green-100 border-green-400 text-green-700' if category == '1' else 'bg-red-100 border-red-400 text-red-700' %}
+                {% set icon_color = 'text-green-500' if category == '1' else 'text-red-500' %}
+                <div class="flash-message {{ alert_type }} border px-4 py-3 rounded relative shadow-md flex items-center justify-between" role="alert" style="opacity: 1; transition: opacity 0.5s ease-out;">
+                    <div class="flex-grow pr-4">
+                        <strong class="font-bold">{{ message }}</strong>
+                    </div>
+                    <span class="cursor-pointer close-flash" onclick="this.parentElement.style.opacity='0'; setTimeout(() => this.parentElement.remove(), 500);">
+                         <svg class="fill-current h-6 w-6 {{ icon_color }}" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                    </span>
+                </div>
+            {% endfor %}
+        </div>
+        <script>
+            // Auto-hide flash messages
+            document.addEventListener('DOMContentLoaded', function() {
+                const flashMessages = document.querySelectorAll('#flash-container .flash-message');
+                flashMessages.forEach(flash => {
+                    setTimeout(() => {
+                        flash.style.opacity = '0';
+                         setTimeout(() => { flash.remove(); }, 500); // Remove after fade out
+                    }, 5000); // Start fade after 5 seconds
+                });
+            });
+        </script>
+    {% endif %}
+{% endwith %}

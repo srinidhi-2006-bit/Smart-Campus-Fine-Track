@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://mdbcdn.b-cdn.net/wp-content/themes/mdbootstrap4/docs-app/css/dist/mdb5/standard/core.min.css">
+</head>
+<body class="bg-gray-50 h-screen">
+<main class="flex h-screen">
+    <aside class="bg-blue-600 text-white shadow-md w-64 py-4 px-4">
+        <div class="text-2xl font-semibold mb-8">Admin Menu</div>
+        <nav>
+            <a href="{{ url_for('admin.admin_home') }}" class="block py-2 px-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin.admin_home' %}bg-blue-700 font-semibold{% endif %}">
+                <i class="fas fa-home mr-2 w-6 text-center"></i> Home
+            </a>
+            <a href="{{ url_for('admin.admin_new_fine_form') }}" class="block py-2 px-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin.admin_new_fine_form' %}bg-blue-700 font-semibold{% endif %}">
+                <i class="fas fa-plus mr-2 w-6 text-center"></i> New Fine Entry
+            </a>
+            <a href="{{ url_for('admin.admin_view_fines') }}" class="block py-2 px-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin.admin_view_fines' %}bg-blue-700 font-semibold{% endif %}">
+                <i class="fas fa-file-invoice-dollar mr-2 w-6 text-center"></i> View Fines
+            </a>
+            <a href="{{ url_for('admin.admin_approve_fines_list') }}" class="block py-2 px-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin.admin_approve_fines_list' %}bg-blue-700 font-semibold{% endif %}">
+                <i class="fas fa-check-circle mr-2 w-6 text-center"></i> Payment Approvals
+                <!-- Optional: Add a badge for pending count -->
+            </a>
+             <a href="{{ url_for('admin.send_reminders') }}" class="block py-2 px-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin.send_reminders' %}bg-blue-700 font-semibold{% endif %}">
+                <i class="fas fa-envelope mr-2 w-6 text-center"></i> Send Reminders
+            </a>
+            <a href="{{ url_for('admin.admin_analytics') }}" class="hidden block py-2 px-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin.admin_analytics' %}bg-blue-700 font-semibold{% endif %}">
+                <i class="fas fa-chart-bar mr-2 w-6 text-center"></i> Analytics
+            </a>
+            <!-- Admins link was hidden, keep as is or implement if needed -->
+            <a href="" class="hidden block py-2 hover:bg-blue-800 rounded {% if request.endpoint == 'admin_profile' %}bg-blue-800 font-semibold{% endif %}">
+                <i class="fas fa-users mr-2 w-6 text-center"></i> Admins
+            </a>
+            <a href="{{ url_for('admin.admin_logout') }}" class="block mt-4 py-2 px-2 hover:bg-blue-800 rounded">
+                <i class="fas fa-sign-out-alt mr-2 w-6 text-center"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <div class="flex-1 flex flex-col overflow-auto">
+        <header class="bg-white py-4 px-6 shadow-md sticky top-0">
+            {% block header_title %}
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-home mr-2"></i>
+                    Home
+                </h2>
+            {% endblock %}
+        </header>
+        {% block main_content %}
+        <div class="flex-1 overflow-auto bg-gray-50 py-4 px-6 space-y-6">
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                     <div class="bg-green-100 p-3 rounded-full">
+                        <a href="/admin/fines?fine_category=&due_date=&status=paid">
+                            <i class="fas fa-rupee-sign fa-2x text-green-600"></i>
+                        </a>
+                     </div>
+                     <div>
+                         <p class="text-sm text-gray-500 font-medium">Total Collected</p>
+                         <p class="text-2xl font-bold text-gray-800">₹ {{ "%.2f"|format(data.total_collected | float) }}</p>
+                     </div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                     <div class="bg-orange-100 p-3 rounded-full">
+                        <a href="/admin/fines?fine_category=&due_date=&status=pending">
+                         <i class="fas fa-hourglass-half fa-2x text-orange-600"></i>
+                        </a>
+                     </div>
+                     <div>
+                         <p class="text-sm text-gray-500 font-medium">Total Pending Fines</p>
+                         <p class="text-2xl font-bold text-gray-800">{{ "%d"|format(data.total_pending | int) }}</p>
+                     </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                     <div class="bg-blue-100 p-3 rounded-full">
+                        <a href="/admin/fines">
+                         <i class="fas fa-list-ol fa-2x text-blue-600"></i>
+                        </a>
+                     </div>
+                     <div>
+                         <p class="text-sm text-gray-500 font-medium">Total Fines Issued</p>
+                         {# Calculate total fines count #}
+                         {% set total_fines = data.fines_by_status | sum(attribute='count') %}
+                         <p class="text-2xl font-bold text-gray-800">{{ total_fines }}</p>
+                     </div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                     <div class="bg-indigo-100 p-3 rounded-full">
+                         <i class="fas fa-users fa-2x text-indigo-600"></i>
+                     </div>
+                     <div>
+                         <p class="text-sm text-gray-500 font-medium">Batches with Fines</p>
+                         <p class="text-2xl font-bold text-gray-800">{{ data.fines_by_batch | length }}</p>
+                     </div>
+                </div>
+            </div>
+        
+            <!-- Batch-wise Fines Analysis Table -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">Batch-wise Analysis</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Fines</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for batch in data.fines_by_batch %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">20{{ batch._id }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ batch.count }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹ {{ "%.2f"|format(batch.total_amount | float) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        
+            <!-- Charts Row 1 -->
+            <!-- <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines by Status</h3>
+                    <div class="h-64"> {# Set height for canvas container #}
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines by Category</h3>
+                     <div class="h-64"> {# Set height for canvas container #}
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div> -->
+        
+            <!-- Charts Row 2 -->
+            <!-- <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines Count by Batch (YY)</h3>
+                     <div class="h-64"> {# Set height for canvas container #}
+                        <canvas id="batchCountChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Fines Issued Over Time (Monthly)</h3>
+                    <div class="h-64"> {# Set height for canvas container #}
+                        <canvas id="monthlyFinesChart"></canvas>
+                    </div>
+                </div>
+            </div> -->
+        
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // --- Chart Colors ---
+                const chartColors = [
+                    '#2563eb', '#16a34a', '#f97316', '#dc2626', '#6366f1',
+                    '#facc15', '#ec4899', '#0ea5e9', '#8b5cf6', '#10b981'
+                ];
+                const hoverColors = [
+                    '#1d4ed8', '#15803d', '#ea580c', '#b91c1c', '#4f46e5',
+                    '#eab308', '#db2777', '#0284c7', '#7c3aed', '#059669'
+                ];
+        
+                // --- 1. Fines by Status Chart ---
+                const statusCtx = document.getElementById('statusChart')?.getContext('2d');
+                if (statusCtx) {
+                    const statusData = {{ data.fines_by_status | tojson }};
+                    new Chart(statusCtx, {
+                        type: 'doughnut', // or 'pie'
+                        data: {
+                            labels: statusData.map(item => item._id.replace('_',' ').title()),
+                            datasets: [{
+                                label: 'Fines Count',
+                                data: statusData.map(item => item.count),
+                                backgroundColor: chartColors.slice(0, statusData.length),
+                                hoverBackgroundColor: hoverColors.slice(0, statusData.length),
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                },
+                                title: {
+                                    display: false, // Already have h3 title
+                                }
+                            }
+                        }
+                    });
+                }
+        
+                // --- 2. Fines by Category Chart ---
+                const categoryCtx = document.getElementById('categoryChart')?.getContext('2d');
+                 if (categoryCtx) {
+                    const categoryData = {{ data.fines_by_category | tojson }};
+                    // Limit categories shown if too many, group others into 'Other'
+                    const maxCategories = 8;
+                    let displayCategories = categoryData;
+                    if (categoryData.length > maxCategories) {
+                         displayCategories = categoryData.slice(0, maxCategories -1);
+                         const otherCount = categoryData.slice(maxCategories -1).reduce((sum, item) => sum + item.count, 0);
+                         if (otherCount > 0) {
+                            displayCategories.push({ _id: 'Other', count: otherCount });
+                         }
+                    }
+        
+                    new Chart(categoryCtx, {
+                        type: 'bar', // Horizontal bar might be better for many categories
+                         data: {
+                            labels: displayCategories.map(item => item._id),
+                            datasets: [{
+                                label: 'Number of Fines',
+                                data: displayCategories.map(item => item.count),
+                                backgroundColor: chartColors[0], // Single color for bar
+                                borderColor: hoverColors[0],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y', // Make it horizontal bar
+                            responsive: true,
+                            maintainAspectRatio: false,
+                             scales: {
+                                x: {
+                                    beginAtZero: true
+                                }
+                            },
+                             plugins: {
+                                legend: { display: false }, // Hide legend for single dataset bar chart
+                                title: { display: false }
+                            }
+                        }
+                    });
+                }
+        
+        
+                // --- 3. Fines Count by Batch Chart ---
+                const batchCountCtx = document.getElementById('batchCountChart')?.getContext('2d');
+                if (batchCountCtx) {
+                    const batchData = {{ data.fines_by_batch | tojson }};
+                     new Chart(batchCountCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: batchData.map(item => `20${item._id}`), // Display as '20YY'
+                            datasets: [{
+                                label: 'Number of Fines',
+                                data: batchData.map(item => item.count),
+                                backgroundColor: chartColors[4], // Indigo color
+                                borderColor: hoverColors[4],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                             scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: { display: true, text: 'Number of Fines' }
+                                },
+                                 x: {
+                                     title: { display: true, text: 'Batch Year' }
+                                 }
+                            },
+                            plugins: { legend: { display: false }, title: { display: false } }
+                        }
+                    });
+                }
+        
+                 // --- 4. Fines Issued Over Time (Monthly) ---
+                 const monthlyCtx = document.getElementById('monthlyFinesChart')?.getContext('2d');
+                 if (monthlyCtx) {
+                    const monthlyData = {{ data.fines_by_month | tojson }};
+                     new Chart(monthlyCtx, {
+                        type: 'line',
+                        data: {
+                            labels: monthlyData.map(item => item._id), // YYYY-MM labels
+                            datasets: [{
+                                label: 'Fines Issued',
+                                data: monthlyData.map(item => item.count),
+                                fill: true,
+                                borderColor: chartColors[7], // Sky blue
+                                backgroundColor: 'rgba(14, 165, 233, 0.1)', // Light sky blue fill
+                                tension: 0.1 // Slight curve
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                             scales: {
+                                y: {
+                                    beginAtZero: true,
+                                     title: { display: true, text: 'Number of Fines Issued' }
+                                },
+                                 x: {
+                                     title: { display: true, text: 'Month' }
+                                 }
+                            },
+                            plugins: { legend: { display: false }, title: { display: false } }
+                        }
+                    });
+                }
+        
+            });
+            </script>
+
+
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages z-100 absolute top-4 right-4" style="width: 300px;">
+                    {% for category, message in messages %}
+                        {% if category == '0' %}
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-2 flex items-center justify-between" role="alert">
+                        {% else %}
+                            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-2 flex items-center justify-between" role="alert">
+                        {% endif %}
+                        <div class="flex-grow">
+                            <strong class="font-bold">{{ message }}</strong>
+                        </div>
+                        <span class="cursor-pointer close-flash">
+                            {% if category == '0' %}
+                                <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            {% else %}
+                                <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            {% endif %}
+                            <title>Close</title>
+                            <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% endwith %}
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const flashMessages = document.querySelectorAll('.flash-messages > div');
+            
+                    flashMessages.forEach(flash => {
+                        setTimeout(() => {
+                            flash.style.transition = 'opacity 0.5s ease-in-out';
+                            flash.style.opacity = '0';
+                            setTimeout(() => {
+                                flash.remove();
+                            }, 500); // 3 seconds timeout
+                        }, 5000);
+            
+                        const closeButton = flash.querySelector('.close-flash');
+                        if (closeButton) {
+                            closeButton.addEventListener('click', () => {
+                                flash.remove();
+                            });
+                        }
+                    });
+                });
+            </script>
+        {% endblock %}
+    </div>
+</main>
+</body>
+</html>

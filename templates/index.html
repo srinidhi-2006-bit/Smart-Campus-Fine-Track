@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Fine Track</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f6f7fb 0%, #eef2ff 100%);
+        }
+
+        .slider-tabs {
+            position: relative;
+            display: inline-flex;
+            background-color: #f3f4f6;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            user-select: none;
+            width: 200px;
+            height: 40px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .slider-tab {
+            padding: 0.5rem 1.5rem;
+            color: #4b5563;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            z-index: 10;
+            transition: all 0.3s ease;
+            width: 100px;
+            height: 40px;
+            text-align: center;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slider-tab:hover {
+            color: #1f2937;
+        }
+
+        .slider-highlight {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100px;
+            height: 40px;
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            transition: left 0.3s ease-out;
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-input {
+            transition: all 0.2s ease;
+            border: 1px solid #e5e7eb;
+            height: 44px;
+        }
+
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-input:hover {
+            border-color: #9ca3af;
+        }
+
+        .submit-btn {
+            transition: all 0.2s ease;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            height: 44px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .form-container {
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .form-content {
+            position: absolute;
+            top: 64px; /* slider height + margin */
+            left: 0;
+            right: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .form-content.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-6xl w-full bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2">
+            <!-- Left Section -->
+            <div class="bg-gradient-to-br from-blue-600 to-blue-800 p-8 md:p-12 text-white flex flex-col justify-center">
+                <div class="space-y-4">
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">
+                        Campus Fine Track
+                    </h1>
+                    <p class="text-blue-100 text-lg">
+                        Smart College Fines Management System
+                    </p>
+                    <div class="pt-4">
+                        <div class="h-1 w-16 bg-blue-400 rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Section -->
+            <div class="p-8 md:p-12">
+                <div class="max-w-md mx-auto form-container">
+                    <div class="slider-tabs">
+                        <div class="slider-highlight"></div>
+                        <button class="slider-tab" id="student-tab" role="tab" aria-selected="true" tabindex="0">
+                            Student
+                        </button>
+                        <button class="slider-tab" id="admin-tab" role="tab" aria-selected="false" tabindex="-1">
+                            Admin
+                        </button>
+                    </div>
+
+                    <div id="flash-message" class="bg-red-50 text-red-800 border border-red-200 rounded-lg p-4 mb-6 hidden" role="alert">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium">Invalid username or password!</span>
+                        </div>
+                    </div>
+
+                    <div class="form-content" id="student_form">
+                        <form class="space-y-6" action="{{ url_for('student.student_search') }}" method="post">
+                            <div>
+                                <label for="student_id" class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                                <input type="text" name="student_id" id="student_id" placeholder="Enter your Roll No" 
+                                    class="form-input w-full px-4 py-2.5 rounded-lg focus:outline-none" />
+                            </div>
+                            <div>
+                                <button type="submit" class="submit-btn w-full text-white font-medium px-4 py-2.5 rounded-lg">
+                                    View Fines
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="form-content hidden" id="admin_form">
+                        <form class="space-y-6" action="{{ url_for('admin.admin_login') }}" method="post">
+                            <div>
+                                <label for="uname" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <input type="text" name="uname" id="uname" placeholder="Enter your username"
+                                    class="form-input w-full px-4 py-2.5 rounded-lg focus:outline-none" />
+                            </div>
+                            <div>
+                                <label for="pswd" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" name="pswd" id="pswd" placeholder="Enter your password"
+                                    class="form-input w-full px-4 py-2.5 rounded-lg focus:outline-none" />
+                            </div>
+                            <div>
+                                <button type="submit" class="submit-btn w-full text-white font-medium px-4 py-2.5 rounded-lg">
+                                    Login
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages fixed top-4 right-4 z-50 space-y-2" style="width: 300px;">
+            {% for category, message in messages %}
+                <div class="{% if category == '0' %}bg-red-50 border-red-200 text-red-800{% else %}bg-green-50 border-green-200 text-green-800{% endif %} 
+                    border rounded-lg p-4 flex items-center justify-between shadow-lg transform transition-all duration-300 ease-in-out" 
+                    role="alert">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            {% if category == '0' %}
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                            {% else %}
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            {% endif %}
+                        </svg>
+                        <span class="font-medium">{{ message }}</span>
+                    </div>
+                    <button class="close-flash text-gray-400 hover:text-gray-500 focus:outline-none" onclick="this.parentElement.style.opacity='0'; setTimeout(() => this.parentElement.remove(), 300);">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const flashMessages = document.querySelectorAll('.flash-messages > div');
+                
+                flashMessages.forEach(flash => {
+                    // Auto-hide after 5 seconds
+                    setTimeout(() => {
+                        flash.style.opacity = '0';
+                        setTimeout(() => {
+                            flash.remove();
+                        }, 300);
+                    }, 5000);
+
+                    // Close button functionality
+                    const closeButton = flash.querySelector('.close-flash');
+                    if (closeButton) {
+                        closeButton.addEventListener('click', () => {
+                            flash.style.opacity = '0';
+                            setTimeout(() => {
+                                flash.remove();
+                            }, 300);
+                        });
+                    }
+                });
+            });
+        </script>
+    {% endif %}
+    {% endwith %}
+
+    <script>
+        const studentTab = document.getElementById('student-tab');
+        const adminTab = document.getElementById('admin-tab');
+        const studentForm = document.getElementById('student_form');
+        const adminForm = document.getElementById('admin_form');
+        const sliderHighlight = document.querySelector('.slider-highlight');
+
+        function activateTab(tabName) {
+            if (tabName === 'student') {
+                studentTab.setAttribute('aria-selected', 'true');
+                studentTab.tabIndex = 0;
+                adminTab.setAttribute('aria-selected', 'false');
+                adminTab.tabIndex = -1;
+                studentForm.classList.remove('hidden');
+                adminForm.classList.add('hidden');
+                sliderHighlight.style.left = '0px';
+            } else {
+                studentTab.setAttribute('aria-selected', 'false');
+                studentTab.tabIndex = -1;
+                adminTab.setAttribute('aria-selected', 'true');
+                adminTab.tabIndex = 0;
+                studentForm.classList.add('hidden');
+                adminForm.classList.remove('hidden');
+                sliderHighlight.style.left = '100px';
+            }
+        }
+
+        studentTab.addEventListener('click', () => activateTab('student'));
+        adminTab.addEventListener('click', () => activateTab('admin'));
+
+        // Keyboard accessibility
+        studentTab.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                activateTab('admin');
+                adminTab.focus();
+            }
+        });
+        adminTab.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                activateTab('student');
+                studentTab.focus();
+            }
+        });
+    </script>
+</body>
+</html>

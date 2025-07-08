@@ -1,0 +1,8 @@
+_id,type,amount
+67f11e540eb122c9e985527c,attendance,400
+67f292150da7da74ca856622,No Buss Pass,500
+67f292240da7da74ca856623,Invalid Bus Pass,5000
+67feabb2d6076b881ecd7cca,Informal Dressing,300
+67feabe3d6076b881ecd7ccb,Late(to clg),200
+67feac6ed6076b881ecd7ccc,Roaming without ID,500
+6807ff36e76866a931090272,Others,0

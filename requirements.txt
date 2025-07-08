@@ -1,0 +1,6 @@
+Flask
+Flask-PyMongo
+Flask-Mail
+dotenv
+pymongo
+python-dotenv

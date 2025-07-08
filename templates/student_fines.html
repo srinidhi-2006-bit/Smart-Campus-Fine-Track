@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fines for {{ student_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .container {
+            max-width: 900px; /* Wider container */
+            margin: 30px auto;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(to right, #1e3a8a, #2563eb); /* Gradient blue */
+            color: white;
+            text-align: center;
+            padding: 25px 20px;
+            border-bottom: 4px solid #fbbf24; /* Amber accent */
+        }
+         .header h1 {
+            font-size: 1.75rem; /* Larger heading */
+            font-weight: 600;
+            margin: 0;
+         }
+        .fine-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0; /* No margin needed */
+        }
+        .fine-table th,
+        .fine-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb; /* Lighter border */
+            vertical-align: middle; /* Align vertically */
+        }
+        .fine-table th {
+            background-color: #f9fafb; /* Very light gray */
+            color: #374151; /* Darker gray */
+            font-weight: 600; /* Semibold */
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .fine-table tr:last-child td {
+            border-bottom: none;
+        }
+        .fine-table tr:hover {
+            background-color: #eff6ff; /* Light blue hover */
+        }
+         .fine-table input[type="checkbox"] {
+            cursor: pointer;
+            width: 1rem;
+            height: 1rem;
+         }
+        .no-fines {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        .status-pending { color: #d97706; font-weight: 500; } /* Amber */
+        .status-paid { color: #16a34a; font-weight: 500; } /* Green */
+        .status-pending_approval { color: #2563eb; font-weight: 500; } /* Blue */
+        .status-rejected { color: #dc2626; font-weight: 500; } /* Red */
+
+        /* Footer styling */
+         .footer-bar {
+            position: sticky; /* Keep footer visible */
+            bottom: 0;
+            background-color: #ffffff;
+            border-top: 1px solid #e5e7eb;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+         }
+         .total-section span {
+            font-size: 1.1rem;
+            font-weight: 600;
+         }
+         .pay-button {
+            background-color: #16a34a; /* Green */
+            color: white;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+         .pay-button:hover {
+            background-color: #15803d; /* Darker green */
+         }
+          .pay-button:disabled {
+            background-color: #9ca3af; /* Gray when disabled */
+            cursor: not-allowed;
+            box-shadow: none;
+         }
+
+        /* Payment Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px; /* Max width for modal */
+            z-index: 50;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+             transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+             font-size: 1.5rem;
+             font-weight: 600;
+             color: #1f2937;
+        }
+        .modal-close-btn {
+             background: none;
+             border: none;
+             font-size: 1.5rem;
+             color: #6b7280;
+             cursor: pointer;
+             transition: color 0.2s ease;
+        }
+        .modal-close-btn:hover {
+             color: #1f2937;
+        }
+        .qr-code-img {
+             display: block;
+             margin: 15px auto; /* Center QR code */
+             max-width: 200px; /* Limit QR code size */
+             height: auto;
+             border: 1px solid #e5e7eb;
+             padding: 5px;
+             border-radius: 4px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Fines for {{ student_name }} <span class="font-normal">({{ student_id_str }})</span></h1>
+        </div>
+
+        {% if fines %}
+        <div class="overflow-x-auto">
+            <table class="fine-table">
+                <thead>
+                    <tr>
+                        <th class="w-12 text-center"><i class="fas fa-check-square"></i></th> <!-- Checkbox column -->
+                        <th>Category</th>
+                        <th>Reason</th>
+                        <th class="text-right">Amount</th>
+                        <th>Issued</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fine in fines %}
+                    <tr data-fine-id="{{ fine._id }}" data-amount="{{ fine.amount }}" data-status="{{ fine.status }}">
+                         <td class="text-center">
+                             {% if fine.status == 'pending' %}
+                             <input type="checkbox" class="fine-checkbox" id="cb_{{ fine._id }}">
+                             {% else %}
+                             {# Visually indicate non-selectable rows #}
+                             <span class="text-gray-400">-</span>
+                             {% endif %}
+                         </td>
+                        <td>{{ fine.fine_category }}</td>
+                        <td class="max-w-xs truncate" title="{{ fine.reason }}">{{ fine.reason | truncate(60) }}</td>
+                        <td class="text-right font-mono">₹ {{ "%.2f"|format(fine.amount | float) }}</td>
+                        <td>{{ fine.issue_date }}</td>
+                        <td>{{ fine.due_date }}</td>
+                        <td>
+                           <span class="status-{{ fine.status | lower | replace(' ', '_') }}">
+                               {{ fine.status | replace('_', ' ') | title }} {# Format status nicely #}
+                           </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p class="no-fines"><i class="fas fa-thumbs-up mr-2"></i>No fines found for this student.</p>
+        {% endif %}
+    </div>
+
+     <!-- Footer Bar for Payment -->
+     {% if fines %} {# Only show footer if there are fines #}
+     <div class="footer-bar">
+         <div class="total-section">
+             <span>Selected Total: </span>
+             <span id="selected_total" class="font-mono">₹ 0.00</span>
+         </div>
+         <button id="pay_selected_button" class="pay-button" disabled>
+             <i class="fas fa-credit-card mr-2"></i> Proceed to Pay
+         </button>
+     </div>
+     {% endif %}
+
+
+<!-- Payment Modal -->
+<div id="payment_modal_overlay" class="modal-overlay overflow-auto">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Payment Details</h2>
+            <button id="close_payment_form" class="modal-close-btn">&times;</button>
+        </div>
+        <!-- Form submits fine IDs and transaction ID -->
+        <form id="submit_payment_form" method="POST" action="{{ url_for('student.process_payment', student_id_str=student_id_str) }}" enctype="multipart/form-data">
+             <!-- Hidden input for selected fine IDs (will be populated by JS) -->
+            <input type="hidden" id="selected_fine_ids_input" name="selected_fine_ids">
+
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Selected Fines:</h3>
+                <ul id="selected_fines_list" class="list-disc list-inside text-sm text-gray-600 max-h-24 overflow-y-auto border p-2 rounded-md">
+                    <!-- JS will populate this -->
+                </ul>
+            </div>
+
+            <div class="mb-4">
+                <label for="modal_total_amount" class="block text-gray-700 text-sm font-bold mb-1">Total Amount:</label>
+                <input type="text" id="modal_total_amount" name="modal_total_amount_display"
+                    class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight focus:outline-none focus:shadow-outline font-semibold"
+                    readonly>
+            </div>
+
+            <div class="mb-4 text-center">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Scan QR Code to Pay:</label>
+                <div id="qrcode">
+                    {# IMPORTANT: Replace with your actual QR code image path #}
+                    <img class="qr-code-img" src="{{ url_for('static', filename='images/your_qr_code.png') }}" alt="Payment QR Code">
+                     <p class="text-xs text-gray-500 mt-1">Scan using your UPI app</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="screenshots" class="block text-gray-700 text-sm font-bold mb-2">Upload Payment Screenshot:</label>
+                <input type="file" id="screenshots" name="screenshots" accept="image/*" class="w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100" required>
+                <p class="text-xs text-gray-500 mt-1">Upload a clear screenshot of your payment confirmation (UPI/Net Banking)</p>
+            </div>
+
+            <div class="mb-6">
+                <label for="transaction_id" class="block text-gray-700 text-sm font-bold mb-1">Enter UTR:</label>
+                <input type="text" id="transaction_id" name="transaction_id"
+                    class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    required
+                    pattern="[0-9]{12}"
+                    placeholder="Enter the 12-digit UTR number">
+                 <p class="text-xs text-gray-500 mt-1">Find this ID in your payment app after successful transaction.</p>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3">
+                <button type="button" id="cancel_payment_button"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Cancel
+                </button>
+                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Submit Payment Proof
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Flash Messages Container -->
+<div id="flash-container" class="fixed top-5 right-5 z-[100] w-80 space-y-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% set alert_type = 'bg-green-100 border-green-400 text-green-700' if category == '1' else 'bg-red-100 border-red-400 text-red-700' %}
+                {% set icon_color = 'text-green-500' if category == '1' else 'text-red-500' %}
+                <div class="flash-message {{ alert_type }} border px-4 py-3 rounded relative shadow-md flex items-center justify-between" role="alert">
+                    <div class="flex-grow pr-4">
+                        <strong class="font-bold">{{ message }}</strong>
+                    </div>
+                    <span class="cursor-pointer close-flash" onclick="this.parentElement.style.display='none';">
+                         <svg class="fill-current h-6 w-6 {{ icon_color }}" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                    </span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.fine-checkbox');
+        const selectedTotalElement = document.getElementById('selected_total');
+        const paySelectedButton = document.getElementById('pay_selected_button');
+
+        const modalOverlay = document.getElementById('payment_modal_overlay');
+        const closeModalButton = document.getElementById('close_payment_form');
+        const cancelPaymentButton = document.getElementById('cancel_payment_button');
+        const selectedFinesList = document.getElementById('selected_fines_list');
+        const modalTotalAmountInput = document.getElementById('modal_total_amount');
+        const selectedFineIdsInput = document.getElementById('selected_fine_ids_input');
+        const paymentForm = document.getElementById('submit_payment_form');
+        const transactionIdInput = document.getElementById('transaction_id');
+        const screenshotInput = document.getElementById('screenshots');
+
+        let selectedTotal = 0;
+        let selectedFineIds = [];
+
+        // Function to update total and button state
+        function updateTotal() {
+            selectedTotal = 0;
+            selectedFineIds = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    const row = cb.closest('tr');
+                    // Only consider 'pending' fines for payment
+                    if (row.dataset.status === 'pending') {
+                        selectedTotal += parseFloat(row.dataset.amount);
+                        selectedFineIds.push(row.dataset.fineId);
+                    } else {
+                        // Uncheck if status is not pending (safety measure)
+                        cb.checked = false;
+                    }
+                }
+            });
+
+            selectedTotalElement.textContent = `₹ ${selectedTotal.toFixed(2)}`;
+            paySelectedButton.disabled = selectedTotal <= 0; // Enable button if total > 0
+        }
+
+        // Add event listeners to checkboxes
+        checkboxes.forEach(cb => {
+            const row = cb.closest('tr');
+            if (row.dataset.status !== 'pending') {
+                cb.disabled = true;
+                cb.classList.add('cursor-not-allowed', 'opacity-50');
+            } else {
+                cb.addEventListener('change', updateTotal);
+            }
+        });
+
+        // Initial calculation in case of page reload with checked boxes
+        updateTotal();
+
+        // --- Modal Handling ---
+        paySelectedButton.addEventListener('click', function() {
+            if (selectedFineIds.length > 0) {
+                // Populate modal
+                modalTotalAmountInput.value = `₹ ${selectedTotal.toFixed(2)}`;
+                selectedFineIdsInput.value = JSON.stringify(selectedFineIds); // Set hidden input value
+
+                // Populate list of selected fines
+                selectedFinesList.innerHTML = ''; // Clear previous list
+                selectedFineIds.forEach(id => {
+                    const row = document.querySelector(`tr[data-fine-id="${id}"]`);
+                    if (row) {
+                        const category = row.cells[1].textContent;
+                        const reason = row.cells[2].textContent;
+                        const amount = row.cells[3].textContent;
+                        const li = document.createElement('li');
+                        li.textContent = `${category}: ${reason} (${amount})`;
+                        selectedFinesList.appendChild(li);
+                    }
+                });
+
+                // Show modal
+                modalOverlay.classList.add('active');
+            }
+        });
+
+        // Close modal handlers
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            // Reset form
+            paymentForm.reset();
+            selectedFineIdsInput.value = '';
+        }
+
+        closeModalButton.addEventListener('click', closeModal);
+        cancelPaymentButton.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', function(e) {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+
+        // Form submission handler
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Validate form
+            if (!transactionIdInput.value.trim()) {
+                alert('Please enter the transaction ID');
+                return;
+            }
+
+            if (!screenshotInput.files || screenshotInput.files.length === 0) {
+                alert('Please upload a payment screenshot');
+                return;
+            }
+
+            if (!selectedFineIdsInput.value) {
+                alert('No fines selected for payment');
+                return;
+            }
+
+            // Additional validation to ensure student_id_str is present
+            const studentIdStr = '{{ student_id_str }}'.trim();
+            if (!studentIdStr) {
+                alert('Invalid student ID. Please try again.');
+                window.location.href = '{{ url_for("index") }}';
+                return;
+            }
+
+            // Set the correct form action URL with proper validation
+            const formAction = studentIdStr ? `/student/${encodeURIComponent(studentIdStr)}/pay` : null;
+            if (!formAction || formAction.includes('//')) {
+                alert('Invalid student ID format. Please try again.');
+                window.location.href = '{{ url_for("index") }}';
+                return;
+            }
+
+            // Submit form with error handling
+            try {
+                e.preventDefault(); // Prevent default form submission
+                const formData = new FormData(this);
+                
+                fetch(formAction, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const flashContainer = document.getElementById('flash-container');
+                        const successMessage = document.createElement('div');
+                        successMessage.className = 'flash-message bg-green-100 border-green-400 text-green-700 border px-4 py-3 rounded relative shadow-md flex items-center justify-between';
+                        successMessage.innerHTML = `
+                            <div class="flex-grow pr-4">
+                                <strong class="font-bold">${data.message}</strong>
+                            </div>
+                        `;
+                        flashContainer.appendChild(successMessage);
+                        
+                        // Close modal
+                        closeModal();
+                        
+                        // Redirect after a short delay
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 2000);
+                    } else {
+                        throw new Error(data.error || 'An error occurred');
+                    }
+                })
+                .catch(error => {
+                    alert(error.message || 'An error occurred while submitting the payment. Please try again.');
+                    console.error('Payment submission error:', error);
+                });
+            } catch (error) {
+                alert('An error occurred while submitting the form. Please try again.');
+                console.error('Form submission error:', error);
+            }
+        });
+
+        // --- Flash Message Auto-hide ---
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(flash => {
+            setTimeout(() => {
+                flash.style.transition = 'opacity 0.5s ease-out';
+                flash.style.opacity = '0';
+                setTimeout(() => {
+                    flash.remove();
+                }, 500); // Remove after fade out
+            }, 5000); // Start fade after 5 seconds
+        });
+    });
+</script>
+
+</body>
+</html>

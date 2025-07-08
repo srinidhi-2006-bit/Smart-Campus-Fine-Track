@@ -1,0 +1,306 @@
+{% extends 'admin_home.html' %}
+
+{% block header_title %}
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold text-gray-800">
+            <i class="fas fa-file-invoice-dollar mr-2"></i>
+            View Fines
+        </h2>
+        <div class="flex items-center space-x-2">
+            <form method="GET" action="{{ url_for('admin.admin_view_fines') }}" class="flex items-center space-x-2">
+                <div class="relative">
+                    <input type="text" name="student_id" placeholder="Search by Student ID" value="{{ search_student_id or '' }}" 
+                        class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-64" />
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-sm">
+                    Search
+                </button>
+                <a href="{{ url_for('admin.admin_view_fines') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-sm">
+                    Clear
+                </a>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block main_content %}
+<div class="flex-1 overflow-auto bg-gray-50 py-4 px-6">
+    <div class="bg-white shadow rounded-lg p-6">
+        <!-- Filter Form -->
+        <div class="filters mb-6">
+            <form method="get" id="filterForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+                    <!-- Batch Filter -->
+                    <div class="filter-group">
+                        <label for="batch_year" class="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+                        <div class="relative">
+                            <select name="batch_year" id="batch_year" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                                <option value="">All Batches</option>
+                                {% for year in range(20, 30) %}
+                                <option value="{{ year }}" {% if search_batch_year == year|string %}selected{% endif %}>20{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Branch Filter -->
+                    <div class="filter-group">
+                        <label for="branch" class="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                        <div class="relative">
+                            <select name="branch" id="branch" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                                <option value="">All Branches</option>
+                                {% for code, name in branch_codes.items() %}
+                                <option value="{{ code }}" {% if search_branch == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="filter-group">
+                        <label for="fine_category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <div class="relative">
+                            <select name="fine_category" id="fine_category" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                                <option value="">All Categories</option>
+                                {% for category in fine_categories %}
+                                <option value="{{ category.type }}" {% if search_category == category.type %}selected{% endif %}>{{ category.type }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="filter-group">
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <div class="relative">
+                            <select name="status" id="status" class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                                <option value="">All Status</option>
+                                <option value="pending" {% if search_status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="pending_approval" {% if search_status == 'pending_approval' %}selected{% endif %}>Pending Approval</option>
+                                <option value="paid" {% if search_status == 'paid' %}selected{% endif %}>Paid</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Due Date Filter -->
+                    <div class="filter-group">
+                        <label for="due_date" class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                        <div class="relative">
+                            <input type="date" name="due_date" id="due_date" value="{{ search_due_date }}"
+                                class="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <i class="fas fa-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+                <!-- </div> -->
+
+                <!-- Filter Actions -->
+                <!-- <div class="flex justify-end space-x-2 pt-2"> -->
+                <div class="hidden">
+                    <label></label>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center">
+                        <i class="fas fa-filter mr-2"></i>
+                       Apply
+                    </button>
+                </div>
+                <div>
+                    <label></label>
+                    <a href="{{ url_for('admin.admin_view_fines') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 flex items-center">
+                        <i class="fas fa-times mr-2"></i>
+                        Clear
+                    </a>
+                </div>
+                </div>
+            </form>
+        </div>
+        <!-- End Filter Form -->
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full leading-normal text-sm">
+                <thead class="bg-gray-100">
+                    <tr>
+                        {# Use student_id_str which is the Roll No #}
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Student ID
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Student Name
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Fine Details
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Amount
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Issued
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Due Date
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Transaction ID
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-3 py-3 border-b-2 border-gray-200 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    {% if fines %}
+                        {% for fine in fines %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm">
+                                    {{ fine.student_id_str | default('N/A') }}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm">
+                                    {{ fine.student_name | default('N/A') }}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm max-w-xs">
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-gray-800">{{ fine.fine_category }}</span>
+                                        <span class="text-gray-600 text-sm mt-1" title="{{ fine.reason }}">{{ fine.reason | truncate(50) }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm text-right">
+                                    {{ "%.2f"|format(fine.amount | float) }}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm">
+                                    {{ fine.issue_date }}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm">
+                                    {{ fine.due_date }}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm">
+                                    {{ fine.transaction_id | default('-') }}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm">
+                                    {% if fine.status == 'pending' %}
+                                        <span class="text-orange-600 font-semibold">{{ fine.status }}</span>
+                                    {% elif fine.status == 'pending_approval' %}
+                                        <span class="text-blue-600 font-semibold">{{ fine.status }}</span>
+                                    {% elif fine.status == 'paid' %}
+                                        <span class="text-green-600 font-semibold">{{ fine.status }}</span>
+                                    {% elif fine.status == 'rejected' %}
+                                        <span class="text-red-600 font-semibold">{{ fine.status }}</span>
+                                    {% else %}
+                                        {{ fine.status }}
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-3 border-b border-gray-200 bg-white text-sm text-center">
+                                    {# Actions depend on status #}
+                                    {% if fine.status == 'paid' %}
+                                        <form class="inline-block" id="delete_{{ fine._id }}"  method="POST" action="{{ url_for('admin.delete_fine', fine_id=fine._id) }}" onsubmit="return confirm('Are you sure you want to delete this PAID fine? This action cannot be undone.');">
+                                            <button
+                                                type="submit"
+                                                class="text-red-600 hover:text-red-800 text-xs font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline"
+                                                title="Delete Paid Fine"
+                                            ><i class="fas fa-trash-alt"></i> Delete</button>
+                                        </form>
+                                     {% elif fine.status == 'pending_approval' %}
+                                        <a href="{{ url_for('admin.admin_approve_fines_list') }}" class="text-blue-600 hover:text-blue-800 text-xs font-bold py-1 px-2" title="Go to Approvals">
+                                            Review
+                                        </a>
+                                    {% elif fine.status == 'pending' %}
+                                        <span class="text-gray-500 text-xs italic">Awaiting Student Payment</span>
+                                        {# Option to manually mark as paid (e.g., cash)? Maybe add later if needed #}
+                                        {# <form id="manual_pay_{{ fine._id }}" method="POST" action="{{ url_for('admin.manual_accept_payment', fine_id=fine._id) }}">
+                                            <button type="submit" class="text-green-600 hover:text-green-800 text-xs font-bold py-1 px-2" title="Manual Cash Payment">Mark Paid</button>
+                                        </form> #}
+                                     {% elif fine.status == 'rejected' %}
+                                         <span class="text-gray-500 text-xs italic">Payment Rejected</span>
+                                    {% else %}
+                                         <span class="text-gray-500 text-xs italic">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                             <td colspan="9" class="text-center py-4 text-gray-500">No fines found matching the criteria.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .filter-group {
+        position: relative;
+    }
+    
+    select {
+        background-image: none;
+    }
+    
+    /* Add smooth transitions */
+    select, input, button {
+        transition: all 0.2s ease-in-out;
+    }
+    
+    /* Hover and focus states */
+    select:hover, input:hover {
+        border-color: #93c5fd;
+    }
+    
+    /* Active filter indicator */
+    select:not([value=""]), input:not([value=""]) {
+        border-color: #3b82f6;
+        background-color: #f0f9ff;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const filterForm = document.getElementById('filterForm');
+        const selects = filterForm.querySelectorAll('select');
+        const dateInput = filterForm.querySelector('input[type="date"]');
+        
+        // Auto-submit on change
+        selects.forEach(select => {
+            select.addEventListener('change', () => {
+                select.classList.add('filter-active');
+                filterForm.submit();
+            });
+        });
+        
+        if (dateInput) {
+            dateInput.addEventListener('change', () => {
+                dateInput.classList.add('filter-active');
+                filterForm.submit();
+            });
+        }
+        
+        // Add loading state to buttons
+        const buttons = filterForm.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Applying...';
+                button.disabled = true;
+            });
+        });
+    });
+</script>
+
+{# Include flash messages block if not already in admin_home.html base template #}
+{% include 'flash_messages.html' %}
+{% endblock %}
